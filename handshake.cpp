@@ -8,12 +8,35 @@
 
 using namespace std;
 
-void query(/*add necessary parameters*/) {
+// typedef struct {sem_t semQ; sem_t semR; int cnt;} passMeType;
+sem_t semQuery;
+sem_t semResponse;
+int count;
+
+
+
+void *query(void* arg) {
     // Should print: the print number (starting from 0), "SYN", and the three dots "..."
+    for (int i = 0; i < count; i++) {
+        sem_wait(&semQuery);
+        cout << "[" << i << "] SYN ... " ;
+        sem_post(&semResponse);
+    }
+    
+
+    return NULL;
 }
 
-void response(/*add necessary parameters*/) {
+void *response(void* arg) {
     // Should print "ACK"
+    for (int i = 0; i < count; i++) {
+        sem_wait(&semResponse);
+        cout << "ACK" << endl;
+        sem_post(&semQuery);   
+    }
+
+    return NULL;
+
 }
 
 int main(int argc, char** argv) {
@@ -22,19 +45,22 @@ int main(int argc, char** argv) {
         exit(1);
     }
 
-    // Steps to follow:
-    // 1. Get the "count" from cmd args
-    int count = stoi(argv[1]);
-    // 2. Create necessary synchronization primitive(s)
-    sem_t semResponse;
-    sem_t semQuery;
-
-    sem_init(&semResponse, 0, 1);
+    count = stoi(argv[1]);
     sem_init(&semQuery, 0, 1);
-    // 3. Create two threads, one for "SYN" and the other for "ACK"
-    
-    // 4. Provide the threads with necessary args
-    // 5. Update the "query" and "response" functions to synchronize the output
+    sem_init(&semResponse, 0, 0);
+
+    pthread_t que;
+    pthread_t res;
+
+    if (pthread_create(&que, NULL, query, NULL)) {
+        perror("problem creating syn thread");
+        exit(0);
+    }
+    if (pthread_create(&res, NULL, response, NULL) != 0) {
+        perror("problem creating ack thread");
+        exit(0);
+    }
+
    
     return 0;
 }
